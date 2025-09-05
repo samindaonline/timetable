@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Daily Agenda</title>
+    <!-- Poppins Font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .message-box {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0;
+            display: none;
+        }
+        
+        .weekly-table-container {
+            overflow-x: auto;
+            /* Added to contain the table within the viewport and enable scrolling */
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+
+        .weekly-table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .weekly-table-container th,
+        .weekly-table-container td {
+            padding: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8">
+
+    <!-- Main Content Container -->
+    <div class="w-full max-w-4xl mx-auto bg-white p-4 sm:p-8 rounded-xl shadow-2xl transition-all duration-300">
+        <h1 class="text-4xl font-black text-center text-gray-800 mb-2">My Daily Agenda</h1>
+        
+        <!-- Current Time and Day Display -->
+        <div class="text-center text-gray-500 mb-8">
+            <p id="currentDay" class="text-lg font-medium"></p>
+            <p id="currentTime" class="text-5xl font-bold text-indigo-600 tracking-wide"></p>
+        </div>
+
+        <!-- Task Sections -->
+        <div id="dailyView" class="transition-all duration-300">
+            <!-- Current Task Section -->
+            <div id="currentTaskContainer" class="mb-8 p-6 rounded-lg shadow-inner border-l-4">
+                <h2 class="text-xl font-semibold mb-2">Current Task</h2>
+                <p id="currentTask" class="text-2xl font-bold animate-pulse">Loading...</p>
+            </div>
+
+            <!-- Upcoming Tasks Section -->
+            <div class="bg-gray-100 rounded-lg p-6 shadow-md mb-8">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Upcoming Tasks</h2>
+                <ul id="upcomingTasks" class="space-y-4">
+                    <li class="text-gray-500">No upcoming tasks.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Navigation for different views -->
+        <nav class="flex justify-center space-x-4 mb-6">
+            <button id="toggleDailyScheduleBtn" class="flex items-center space-x-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors">
+                <i class="fa-solid fa-calendar-day"></i>
+                <span>Daily</span>
+            </button>
+            <button id="toggleWeeklyScheduleBtn" class="flex items-center space-x-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors">
+                <i class="fa-solid fa-calendar-week"></i>
+                <span>Week</span>
+            </button>
+        </nav>
+        
+        <!-- Famous Quote Section (Dynamically fetched from an API) -->
+        <div id="quoteSection" class="text-center p-4 bg-gray-100 rounded-md shadow-inner mb-6 transition-all duration-300">
+            <p id="quoteDisplay" class="text-gray-600 italic">"Loading quote..."</p>
+            <p id="quoteAuthor" class="text-sm font-semibold text-gray-500 mt-2">- Author</p>
+        </div>
+        
+        <!-- Full Daily Schedule Section -->
+        <div id="fullScheduleWrapper" class="hidden">
+            <div class="bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Full Daily Schedule</h2>
+                <ul id="fullSchedule" class="space-y-4">
+                    <!-- Full schedule items will be dynamically inserted here -->
+                </ul>
+            </div>
+        </div>
+        
+        <!-- All Week Schedule Table -->
+        <div id="allWeekScheduleWrapper" class="hidden weekly-table-container">
+            <div class="bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2 text-center">Full Weekly Schedule</h2>
+                <div class="flex flex-wrap justify-center text-sm gap-x-4 gap-y-2 mb-4">
+                    <!-- Icon Legend -->
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-sun text-yellow-500"></i>
+                        <span>Wake Up</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-shower text-blue-500"></i>
+                        <span>Bath</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-star text-orange-800"></i>
+                        <span>Free Time</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-book text-blue-800"></i>
+                        <span>Study</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-briefcase text-red-800"></i>
+                        <span>Work</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-utensils text-yellow-800"></i>
+                        <span>Meal</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-list-check text-purple-800"></i>
+                        <span>Planning</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-bed text-green-800"></i>
+                        <span>Sleep</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-car text-gray-800"></i>
+                        <span>Travel</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-chalkboard-user text-indigo-800"></i>
+                        <span>Lecture</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-book-reader text-pink-800"></i>
+                        <span>Reading</span>
+                    </div>
+                </div>
+                <table id="weeklyTable" class="w-full">
+                    <thead>
+                        <tr class="bg-gray-200 text-gray-700">
+                            <th>Time</th>
+                            <th>Mon</th>
+                            <th>Tue</th>
+                            <th>Wed</th>
+                            <th>Thu</th>
+                            <th>Fri</th>
+                            <th>Sat</th>
+                            <th>Sun</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Weekly schedule content will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Box for feedback -->
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        (function() {
+            // Function to show a message box
+            function showMessage(message, type = 'success') {
+                const messageBox = document.getElementById('messageBox');
+                messageBox.textContent = message;
+                if (type === 'success') {
+                    messageBox.className = 'message-box bg-green-500 text-white';
+                } else if (type === 'error') {
+                    messageBox.className = 'message-box bg-red-500 text-white';
+                }
+                messageBox.style.display = 'block';
+                messageBox.style.opacity = '1';
+                setTimeout(() => {
+                    messageBox.style.opacity = '0';
+                    setTimeout(() => messageBox.style.display = 'none', 500);
+                }, 3000);
+            }
+
+            // Define task styling based on category
+            const taskStyles = {
+                "wake_up": {
+                    currentBg: 'bg-yellow-100',
+                    currentBorder: 'border-yellow-500',
+                    currentText: 'text-yellow-800',
+                    upcomingBg: 'bg-yellow-50',
+                    icon: 'fas fa-sun',
+                    tableBg: 'bg-yellow-50'
+                },
+                "on_duty": {
+                    currentBg: 'bg-blue-200',
+                    currentBorder: 'border-blue-600',
+                    currentText: 'text-blue-900',
+                    upcomingBg: 'bg-blue-100',
+                    icon: 'fas fa-shower',
+                    tableBg: 'bg-blue-100'
+                },
+                "free": {
+                    currentBg: 'bg-orange-100',
+                    currentBorder: 'border-orange-500',
+                    currentText: 'text-orange-800',
+                    upcomingBg: 'bg-orange-50',
+                    icon: 'fas fa-star',
+                    tableBg: 'bg-orange-50'
+                },
+                "study": {
+                    currentBg: 'bg-blue-100',
+                    currentBorder: 'border-blue-500',
+                    currentText: 'text-blue-800',
+                    upcomingBg: 'bg-blue-50',
+                    icon: 'fas fa-book',
+                    tableBg: 'bg-blue-50'
+                },
+                "work": {
+                    currentBg: 'bg-red-100',
+                    currentBorder: 'border-red-500',
+                    currentText: 'text-red-800',
+                    upcomingBg: 'bg-red-50',
+                    icon: 'fas fa-briefcase',
+                    tableBg: 'bg-red-50'
+                },
+                "meal": {
+                    currentBg: 'bg-yellow-100',
+                    currentBorder: 'border-yellow-500',
+                    currentText: 'text-yellow-800',
+                    upcomingBg: 'bg-yellow-50',
+                    icon: 'fas fa-utensils',
+                    tableBg: 'bg-yellow-50'
+                },
+                "planning": {
+                    currentBg: 'bg-purple-100',
+                    currentBorder: 'border-purple-500',
+                    currentText: 'text-purple-800',
+                    upcomingBg: 'bg-purple-50',
+                    icon: 'fas fa-list-check',
+                    tableBg: 'bg-purple-50'
+                },
+                "sleep": {
+                    currentBg: 'bg-green-100',
+                    currentBorder: 'border-green-500',
+                    currentText: 'text-green-800',
+                    upcomingBg: 'bg-green-50',
+                    icon: 'fas fa-bed',
+                    tableBg: 'bg-green-50'
+                },
+                "travel": {
+                    currentBg: 'bg-gray-300',
+                    currentBorder: 'border-gray-400',
+                    currentText: 'text-gray-800',
+                    upcomingBg: 'bg-gray-200',
+                    icon: 'fas fa-car',
+                    tableBg: 'bg-gray-200'
+                },
+                "lecture": {
+                    currentBg: 'bg-indigo-100',
+                    currentBorder: 'border-indigo-500',
+                    currentText: 'text-indigo-800',
+                    upcomingBg: 'bg-indigo-50',
+                    icon: 'fas fa-chalkboard-user',
+                    tableBg: 'bg-indigo-50'
+                },
+                "reading": {
+                    currentBg: 'bg-pink-100',
+                    currentBorder: 'border-pink-500',
+                    currentText: 'text-pink-800',
+                    upcomingBg: 'bg-pink-50',
+                    icon: 'fas fa-book-reader',
+                    tableBg: 'bg-pink-50'
+                }
+            };
+
+            // Get DOM elements for the quote section
+            const quoteDisplayEl = document.getElementById('quoteDisplay');
+            const quoteAuthorEl = document.getElementById('quoteAuthor');
+            
+            // A local array of philosophical and motivational quotes
+            const quotes = [
+                { text: "The unexamined life is not worth living.", author: "Socrates" },
+                { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+                { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+                { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+                { text: "Success is not final; failure is not fatal: It is the courage to continue that counts.", author: "Winston S. Churchill" },
+                { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+                { text: "Strive not to be a success, but rather to be of value.", author: "Albert Einstein" },
+                { text: "The only limit to our realization of tomorrow will be our doubts of today.", author: "Franklin D. Roosevelt" },
+                { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+                { text: "I have not failed. I've just found 10,000 ways that won't work.", author: "Thomas Edison" },
+                { text: "Life is what happens when you're busy making other plans.", author: "John Lennon" },
+                { text: "The only constant in life is change.", author: "Heraclitus" },
+                { text: "Whereof one cannot speak, thereof one must be silent.", author: "Ludwig Wittgenstein" },
+                { text: "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.", author: "Ralph Waldo Emerson" },
+                { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" }
+            ];
+
+            // Function to display a random quote from the local array
+            function displayRandomQuote() {
+                const randomIndex = Math.floor(Math.random() * quotes.length);
+                const randomQuote = quotes[randomIndex];
+                quoteDisplayEl.textContent = `"${randomQuote.text}"`;
+                quoteAuthorEl.textContent = `- ${randomQuote.author}`;
+            }
+
+            // Define the agenda for weekdays and weekends
+            const weekdayAgenda = [
+                { start: "06:00", end: "06:15", task: "Wake up", categories: ["wake_up"] },
+                { start: "06:15", end: "06:45", task: "Bath & get ready", categories: ["on_duty"] },
+                { start: "06:45", end: "07:00", task: "Free time", categories: ["free"] },
+                { start: "07:00", end: "08:15", task: "Morning study session", categories: ["study"] },
+                { start: "08:15", end: "08:30", task: "Free time", categories: ["free"] },
+                { start: "08:30", end: "12:00", task: "Morning work session", categories: ["work"] },
+                { start: "12:00", end: "13:00", task: "Lunch break", categories: ["meal"] },
+                { start: "13:00", end: "18:30", task: "Evening work session", categories: ["work"] },
+                { start: "18:30", end: "19:00", task: "Bath time", categories: ["on_duty"] },
+                { start: "19:00", end: "19:30", task: "Free time", categories: ["free"] },
+                { start: "19:30", end: "21:00", task: "Night study session", categories: ["study"] },
+                { start: "21:00", end: "22:00", task: "Dinner and free time", categories: ["meal", "free"] },
+                { start: "22:00", end: "23:00", task: "Plan for next day & reading session", categories: ["planning", "reading"] },
+                { start: "23:00", end: "24:00", task: "Sleep", categories: ["sleep"] }
+            ];
+
+            const weekendAgenda = [
+                { start: "04:00", end: "04:30", task: "Wake up & get ready", categories: ["wake_up", "on_duty"] },
+                { start: "04:30", end: "08:00", task: "Travel to university", categories: ["travel"] },
+                { start: "08:00", end: "08:30", task: "Free time", categories: ["free"] },
+                { start: "08:30", end: "18:30", task: "Lectures", categories: ["lecture"] },
+                { start: "18:30", end: "21:30", task: "Travel to home", categories: ["travel"] },
+                { start: "21:30", end: "23:00", task: "Dinner and free time", categories: ["meal", "free"] },
+                { start: "23:00", end: "24:00", task: "Sleep", categories: ["sleep"] }
+            ];
+
+            const weekAgenda = {
+                1: weekdayAgenda, // Monday
+                2: weekdayAgenda, // Tuesday
+                3: weekdayAgenda, // Wednesday
+                4: weekdayAgenda, // Thursday
+                5: weekdayAgenda, // Friday
+                6: weekendAgenda, // Saturday
+                0: weekendAgenda  // Sunday
+            };
+            
+            // Get DOM elements
+            const currentDayEl = document.getElementById('currentDay');
+            const currentTimeEl = document.getElementById('currentTime');
+            const currentTaskEl = document.getElementById('currentTask');
+            const upcomingTasksEl = document.getElementById('upcomingTasks');
+            const dailyViewEl = document.getElementById('dailyView');
+            const fullScheduleEl = document.getElementById('fullSchedule');
+            const toggleDailyScheduleBtn = document.getElementById('toggleDailyScheduleBtn');
+            const toggleWeeklyScheduleBtn = document.getElementById('toggleWeeklyScheduleBtn');
+            const fullScheduleWrapper = document.getElementById('fullScheduleWrapper');
+            const currentTaskContainer = document.getElementById('currentTaskContainer');
+            const allWeekScheduleWrapper = document.getElementById('allWeekScheduleWrapper');
+
+            // Helper function to convert "HH:MM" to minutes from midnight
+            function timeToMinutes(time) {
+                const [hours, minutes] = time.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
+            
+            // Function to find the current and upcoming tasks
+            function findCurrentAndUpcomingTasks() {
+                const now = new Date();
+                const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const agenda = isWeekend ? weekendAgenda : weekdayAgenda;
+                
+                const nowInMinutes = now.getHours() * 60 + now.getMinutes();
+                
+                let currentTask = { task: "Enjoy your day!", categories: ["free"] };
+                let currentTaskIndex = -1;
+                let upcomingTasks = [];
+
+                for (let i = 0; i < agenda.length; i++) {
+                    const entry = agenda[i];
+                    const startMinutes = timeToMinutes(entry.start);
+                    const endMinutes = timeToMinutes(entry.end);
+
+                    if (nowInMinutes >= startMinutes && nowInMinutes < endMinutes) {
+                        currentTask = entry;
+                        currentTaskIndex = i;
+                        break;
+                    }
+                }
+
+                if (currentTaskIndex !== -1) {
+                    for (let i = 1; i <= 2; i++) {
+                        const nextIndex = currentTaskIndex + i;
+                        if (nextIndex < agenda.length) {
+                            upcomingTasks.push(agenda[nextIndex]);
+                        } else {
+                            const nextDayAgenda = (dayOfWeek === 5) ? weekendAgenda : weekdayAgenda;
+                            const wrapIndex = nextIndex - agenda.length;
+                            if (wrapIndex < nextDayAgenda.length) {
+                                upcomingTasks.push(nextDayAgenda[wrapIndex]);
+                            }
+                        }
+                    }
+                }
+                
+                return { currentTask, upcomingTasks, currentTaskIndex };
+            }
+
+            // Function to render the full daily schedule
+            function renderFullSchedule(agenda) {
+                fullScheduleEl.innerHTML = '';
+                if (agenda.length > 0) {
+                    agenda.forEach(task => {
+                        const li = document.createElement('li');
+                        const primaryCategory = task.categories[0];
+                        const styles = taskStyles[primaryCategory];
+                        
+                        let iconsHtml = task.categories.map(cat => `<i class="${taskStyles[cat].icon}"></i>`).join(' ');
+                        
+                        li.className = `text-gray-800 p-3 rounded-md shadow-sm flex items-center space-x-2 ${styles.upcomingBg} ${styles.currentText}`;
+                        li.innerHTML = `
+                            <span class="font-semibold text-sm text-gray-500">${task.start} - ${task.end}</span>
+                            <span class="w-6 text-center">${iconsHtml}</span>
+                            <span>${task.task}</span>
+                        `;
+                        fullScheduleEl.appendChild(li);
+                    });
+                } else {
+                    fullScheduleEl.innerHTML = '<li class="text-gray-500">No schedule for today.</li>';
+                }
+            }
+            
+            // Function to render the full weekly schedule
+            function renderAllWeekSchedule() {
+                const weeklyTableBody = document.getElementById('weeklyTable').querySelector('tbody');
+                weeklyTableBody.innerHTML = '';
+                
+                const days = [1, 2, 3, 4, 5, 6, 0]; // Monday to Sunday
+                const now = new Date();
+                const currentDayIndex = now.getDay();
+                const nowInMinutes = now.getHours() * 60 + now.getMinutes();
+
+                let time = 0; // in minutes
+                while (time < 24 * 60) {
+                    const row = document.createElement('tr');
+                    
+                    // Time cell
+                    const timeCell = document.createElement('td');
+                    const hours = String(Math.floor(time / 60)).padStart(2, '0');
+                    const minutes = String(time % 60).padStart(2, '0');
+                    const timeString = `${hours}:${minutes}`;
+                    
+                    // Add a data attribute to the row for easy lookup
+                    row.dataset.time = timeString;
+
+                    timeCell.textContent = timeString;
+                    timeCell.className = "font-medium text-gray-600";
+                    row.appendChild(timeCell);
+
+                    // Day cells
+                    days.forEach(dayIndex => {
+                        const cell = document.createElement('td');
+                        const agenda = weekAgenda[dayIndex];
+                        let taskFound = false;
+                        
+                        // Find the task for this time block
+                        for (const task of agenda) {
+                            const startMinutes = timeToMinutes(task.start);
+                            const endMinutes = timeToMinutes(task.end);
+
+                            if (time >= startMinutes && time < endMinutes) {
+                                const primaryCategory = task.categories[0];
+                                const styles = taskStyles[primaryCategory];
+                                
+                                let iconsHtml = task.categories.map(cat => `<i class="${taskStyles[cat].icon} text-lg"></i>`).join(' ');
+                                
+                                cell.innerHTML = iconsHtml;
+                                cell.className = `${styles.tableBg} ${styles.currentText}`;
+                                cell.title = task.task;
+                                taskFound = true;
+                                break;
+                            }
+                        }
+
+                        // Fill in empty cells with default tasks if no specific task is found
+                        if (!taskFound) {
+                            let defaultTask = {};
+                            const earliestTaskTime = (dayIndex === 6 || dayIndex === 0) ? timeToMinutes("04:00") : timeToMinutes("06:00");
+                            if (time < earliestTaskTime) {
+                                defaultTask = { task: "Sleep", categories: ["sleep"] };
+                            } else {
+                                defaultTask = { task: "Free Time", categories: ["free"] };
+                            }
+                            const primaryCategory = defaultTask.categories[0];
+                            const styles = taskStyles[primaryCategory];
+                            cell.innerHTML = `<i class="${styles.icon} text-lg"></i>`;
+                            cell.className = `${styles.tableBg} ${styles.currentText}`;
+                            cell.title = defaultTask.task;
+                        }
+
+                        // Highlight the current time slot for the current day
+                        const currentDayOfWeek = (new Date()).getDay();
+                        const nowInMinutes = (new Date()).getHours() * 60 + (new Date()).getMinutes();
+                        const isCurrentBlock = (dayIndex === currentDayOfWeek) && (time <= nowInMinutes) && (time + 15 > nowInMinutes);
+
+                        if (isCurrentBlock) {
+                            cell.className += ` !bg-blue-600 !text-white`;
+                            timeCell.className += ` !bg-blue-600 !text-white`;
+                        }
+                        
+                        row.appendChild(cell);
+                    });
+                    
+                    weeklyTableBody.appendChild(row);
+                    time += 15; // 15-minute increment
+                }
+            }
+
+            // Function to scroll the weekly table to the current time
+            function scrollToCurrentTime() {
+                const now = new Date();
+                const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                const interval = 15; // The interval of the table
+                
+                // Find the closest time block
+                const nearestTimeMinutes = Math.floor(currentMinutes / interval) * interval;
+                const hours = String(Math.floor(nearestTimeMinutes / 60)).padStart(2, '0');
+                const minutes = String(nearestTimeMinutes % 60).padStart(2, '0');
+                const timeString = `${hours}:${minutes}`;
+
+                const currentTaskRow = document.querySelector(`tr[data-time="${timeString}"]`);
+                if (currentTaskRow) {
+                    currentTaskRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            // Function to update the DOM with the agenda
+            function updateAgenda() {
+                const now = new Date();
+                const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const dayOfWeek = now.getDay();
+                const day = dayNames[dayOfWeek];
+                const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const agenda = isWeekend ? weekendAgenda : weekdayAgenda;
+
+                currentDayEl.textContent = `Today is ${day}`;
+                currentTimeEl.textContent = time;
+
+                const { currentTask, upcomingTasks, currentTaskIndex } = findCurrentAndUpcomingTasks();
+                
+                // Update current task section with colors and icons
+                const primaryCategory = currentTask.categories[0];
+                const currentTaskStyles = taskStyles[primaryCategory] || taskStyles['free'];
+                currentTaskContainer.className = `mb-8 p-6 rounded-lg shadow-inner border-l-4 ${currentTaskStyles.currentBg} ${currentTaskStyles.currentBorder}`;
+                currentTaskEl.className = `text-2xl font-bold animate-pulse ${currentTaskStyles.currentText}`;
+                
+                let currentIconsHtml = currentTask.categories.map(cat => `<i class="${taskStyles[cat].icon} mr-3"></i>`).join(' ');
+                currentTaskEl.innerHTML = `${currentIconsHtml}${currentTask.task}`;
+
+                upcomingTasksEl.innerHTML = '';
+                if (upcomingTasks.length > 0) {
+                    upcomingTasks.forEach(task => {
+                        const li = document.createElement('li');
+                        const primaryCategory = task.categories[0];
+                        const styles = taskStyles[primaryCategory] || taskStyles['free'];
+                        let iconsHtml = task.categories.map(cat => `<i class="${taskStyles[cat].icon}"></i>`).join(' ');
+                        
+                        li.className = `p-3 rounded-md bg-white shadow-sm flex items-center space-x-2 ${styles.currentText}`;
+                        li.innerHTML = `
+                            <span class="font-semibold text-sm text-gray-500">${task.start} - ${task.end}</span>
+                            <span class="w-6 text-center">${iconsHtml}</span>
+                            <span>${task.task}</span>
+                        `;
+                        upcomingTasksEl.appendChild(li);
+                    });
+                } else {
+                    upcomingTasksEl.innerHTML = '<li class="text-gray-500">No more tasks for today.</li>';
+                }
+
+                renderFullSchedule(agenda);
+                renderAllWeekSchedule();
+            }
+            
+            // Function to toggle the full daily schedule visibility
+            function toggleDailySchedule() {
+                const isHidden = fullScheduleWrapper.classList.toggle('hidden');
+                dailyViewEl.classList.toggle('hidden', !isHidden);
+                allWeekScheduleWrapper.classList.add('hidden');
+                if (isHidden) {
+                    toggleDailyScheduleBtn.querySelector('span').textContent = 'Daily';
+                } else {
+                    toggleDailyScheduleBtn.querySelector('span').textContent = 'Daily';
+                }
+                toggleWeeklyScheduleBtn.querySelector('span').textContent = 'Week';
+            }
+
+            // Function to toggle the full weekly schedule visibility
+            function toggleWeeklySchedule() {
+                const isHidden = allWeekScheduleWrapper.classList.toggle('hidden');
+                dailyViewEl.classList.toggle('hidden', !isHidden);
+                fullScheduleWrapper.classList.add('hidden');
+                if (isHidden) {
+                    toggleWeeklyScheduleBtn.querySelector('span').textContent = 'Week';
+                } else {
+                    toggleWeeklyScheduleBtn.querySelector('span').textContent = 'Week';
+                }
+                toggleDailyScheduleBtn.querySelector('span').textContent = 'Daily';
+
+                // Scroll to the current time row after showing the table
+                if (!isHidden) {
+                    setTimeout(scrollToCurrentTime, 100); // Small delay to ensure table is rendered
+                }
+            }
+
+            // Attach event listeners to the new buttons
+            toggleDailyScheduleBtn.addEventListener('click', toggleDailySchedule);
+            toggleWeeklyScheduleBtn.addEventListener('click', toggleWeeklySchedule);
+
+            // Update the agenda every second
+            setInterval(updateAgenda, 1000);
+
+            // Initial update on page load
+            window.onload = () => {
+                displayRandomQuote();
+                updateAgenda();
+            };
+        })();
+    </script>
+</body>
+</html>
